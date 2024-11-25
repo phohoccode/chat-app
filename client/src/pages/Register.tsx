@@ -1,19 +1,14 @@
 import { Alert, Button, Form, Row, Col, Stack } from "react-bootstrap";
-import { createContext, useContext, useState } from "react";
+import { useContext } from "react";
 import { AuthContext } from "../context/AuthContext";
 
-interface RegisterProps {
-  user: {
-    name: string;
-  };
-}
-
 const Register = () => {
-  const { registerInfo, updateRegisterInfo }: any = useContext(AuthContext);
+  const { registerInfo, updateRegisterInfo, registerUser, registerError, isRegisterLoading }: any =
+    useContext(AuthContext);
 
   return (
     <>
-      <Form className="mt-3">
+      <Form onSubmit={registerUser} className="mt-3">
         <Row
           style={{
             height: "100vh",
@@ -55,12 +50,14 @@ const Register = () => {
                 }
               />
               <Button variant="primary" type="submit">
-                Register
+                {isRegisterLoading ? "Loading..." : "Register"}
               </Button>
 
-              <Alert variant="danger">
-                <p>An error occured</p>
-              </Alert>
+              {registerError?.error && (
+                <Alert variant="danger">
+                  <p>{registerError?.message}</p>
+                </Alert>
+              )}
             </Stack>
           </Col>
         </Row>
