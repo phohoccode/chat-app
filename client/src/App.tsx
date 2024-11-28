@@ -6,12 +6,13 @@ import Login from "./pages/Login";
 import { Container } from "react-bootstrap";
 import NavBar from "./components/NavBar";
 import { AuthContext, AuthContextType } from "./context/AuthContext";
+import { ChatProvider } from "./context/ChatContext";
 
 function App() {
   const { user }: AuthContextType = useContext(AuthContext) || { user: null };
 
   return (
-    <>
+    <ChatProvider user={user}>
       <NavBar />
       <Container>
         <Routes>
@@ -21,7 +22,7 @@ function App() {
           <Route path="*" element={<Navigate to="/" />} />
         </Routes>
       </Container>
-    </>
+    </ChatProvider>
   );
 }
 
