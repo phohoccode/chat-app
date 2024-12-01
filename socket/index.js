@@ -26,8 +26,15 @@ io.on("connection", (socket) => {
     socket.on("sendMessage", (message) => {
         const user = onlineUsers.find(user => user.userId === message.recipientId);
 
+        console.log('>>> message', message);
         if (user) {
+            // cập nhận tin nhắn cho người nhận
             io.to(user.socketId).emit("getMessage", message);
+            io.to(user.socketId).emit("getNotification", {
+                senderId: message.senderId,
+                isRead: false,
+                date: new Date()
+            });
         } else {
             console.log("Người dùng không online");
         }

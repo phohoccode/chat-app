@@ -13,7 +13,7 @@ interface ChatProviderProps {
   user: any;
 }
 
-interface ChatContextType {
+export interface ChatContextType {
   userChats: any;
   isUserChatsLoading: boolean;
   userChatsError: string | null;
@@ -26,6 +26,8 @@ interface ChatContextType {
     userId: string;
     socketId: string;
   };
+  notifications: any;
+  allUsers: any;
   createChat: (fisrtId: string, secondId: string) => Promise<void>;
   updateCurrentChat: (chat: any) => void;
   sendTextMessage: (
@@ -34,6 +36,13 @@ interface ChatContextType {
     currentChatId: string,
     setTextMessage: (value: string) => void
   ) => Promise<void>;
+  markAllNotificationsAsRead: (notifications: any) => void;
+  markNotificationAsRead: (
+    n: any,
+    userChats: any,
+    user: any,
+    notifications: any
+  ) => void;
 }
 
 export const ChatContext = createContext<ChatContextType | null>(null);
@@ -53,6 +62,10 @@ export const ChatProvider = ({ children, user }: ChatProviderProps) => {
   const [newMessage, setNewMessage] = useState<any>(null);
   const [socket, setSocket] = useState<any>(null);
   const [onlineUsers, setOnlineUsers] = useState<any>([]);
+  const [notifications, setNotifications] = useState<any>([]);
+  const [allUsers, setAllUsers] = useState<any>([]);
+
+  console.log("notifications", notifications);
 
   useEffect(() => {
     const newSocket = io("http://localhost:3000");
@@ -80,6 +93,7 @@ export const ChatProvider = ({ children, user }: ChatProviderProps) => {
   useEffect(() => {
     if (socket === null) return;
 
+    // lấy ra id người nhận từ cuộc trò chuyện hiện tại
     const recipientId = currentChat?.members?.find(
       (id: string) => id !== user?._id
     );
@@ -87,24 +101,60 @@ export const ChatProvider = ({ children, user }: ChatProviderProps) => {
     socket.emit("sendMessage", { ...newMessage, recipientId });
   }, [newMessage]);
 
-  // receive message
+  // receive message and notifycation
   useEffect(() => {
     if (socket === null) return;
 
     socket.on("getMessage", (res: any) => {
+      console.log(">>> receive chat", res);
+
       if (currentChat?._id !== res.chatId) {
         console.log("Id phòng chat không trùng khớp");
         return;
       }
-      console.log("Received message", res);
 
       setMessages((prev: any) => [...prev, res]);
     });
 
+    socket.on("getNotification", (res: any) => {
+      console.log(">>> getNotification", res);
+
+      const isChatOpen = currentChat?.members?.some(
+        (id: string) => id === res.senderId
+      );
+
+      if (isChatOpen) {
+        setNotifications((prev: any) => [{ ...res, isRead: true }, ...prev]);
+      } else {
+        setNotifications((prev: any) => [res, ...prev]);
+      }
+    });
+
     return () => {
       socket.off("getMessage");
+      socket.off("getNotification");
     };
   }, [socket, currentChat]);
+
+  // khi người dùng login -> get cuộc trò chuyện
+  useEffect(() => {
+    const getUserChats = async () => {
+      if (user?._id) {
+        setIsUserChatsLoading(true);
+        setUserChatsError(null);
+        const response = await getRequest(`${baseUrl}/chats/${user._id}`);
+
+        setIsUserChatsLoading(false);
+
+        if (response.error) {
+          return setUserChatsError(response.error);
+        }
+
+        setUserChats(response);
+      }
+    };
+    getUserChats();
+  }, [user]);
 
   useEffect(() => {
     const getUsers = async () => {
@@ -134,29 +184,13 @@ export const ChatProvider = ({ children, user }: ChatProviderProps) => {
       });
 
       setPotentialChats(pChats);
+      setAllUsers(response);
     };
 
     getUsers();
   }, [userChats]);
 
-  useEffect(() => {
-    const getUserChats = async () => {
-      if (user?._id) {
-        setIsUserChatsLoading(true);
-        setUserChatsError(null);
-        const response = await getRequest(`${baseUrl}/chats/${user._id}`);
-        setIsUserChatsLoading(false);
-
-        if (response.error) {
-          return setUserChatsError(response.error);
-        }
-
-        setUserChats(response);
-      }
-    };
-    getUserChats();
-  }, [user]);
-
+  // run khi người dùng trò chuyện
   useEffect(() => {
     const getMessages = async () => {
       setIsMessagesLoading(true);
@@ -212,19 +246,57 @@ export const ChatProvider = ({ children, user }: ChatProviderProps) => {
     });
 
     if (response.error) {
-      return console.log("Error creating chat", response);
+      return console.log("Lỗi khi tạo cuộc trò chuyện!", response);
     }
 
     setUserChats((prev: any) => [...prev, response]);
   }, []);
 
+  // kích hoạt khi nhấn vào người dùng khác
   const updateCurrentChat = useCallback((chat: any) => {
     setCurrentChat(chat);
   }, []);
 
+  const markAllNotificationsAsRead = useCallback((notifications: any) => {
+    const mNofications = notifications?.map((n: any) => {
+      return { ...n, isRead: true };
+    });
+
+    setNotifications(mNofications);
+  }, []);
+
+  const markNotificationAsRead = useCallback(
+    (n: any, userChats: any, user: any, notifications: any) => {
+      // find chat to open
+
+      const desiredChat = userChats.find((chat: any) => {
+        const chatMembers = [user._id, n.senderId];
+        const isDesiredChat = chat?.members?.every((member: any) => {
+          return chatMembers.includes(member);
+        });
+
+        return isDesiredChat;
+      });
+
+      // đánh dấu thông báo đã đọc
+      const mNofications = notifications?.map((el: any) => {
+        if (n.senderId === el.senderId) {
+          return { ...n, isRead: true };
+        } else {
+          return el;
+        }
+      });
+
+      updateCurrentChat(desiredChat);
+      setNotifications(mNofications);
+    },
+    []
+  );
+
   return (
     <ChatContext.Provider
       value={{
+        allUsers,
         userChats,
         isUserChatsLoading,
         userChatsError,
@@ -234,9 +306,12 @@ export const ChatProvider = ({ children, user }: ChatProviderProps) => {
         messagesError,
         currentChat,
         onlineUsers,
+        notifications,
         createChat,
         updateCurrentChat,
         sendTextMessage,
+        markAllNotificationsAsRead,
+        markNotificationAsRead,
       }}
     >
       {children}

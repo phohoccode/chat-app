@@ -11,6 +11,7 @@ const Chat = () => {
   const { userChats, isUserChatsLoading, updateCurrentChat }: any =
     useContext(ChatContext);
 
+
   return (
     <Container className="mt-4">
       <PotentialChats />

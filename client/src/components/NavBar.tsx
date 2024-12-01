@@ -2,6 +2,7 @@ import { useContext } from "react";
 import { Container, Nav, Navbar, Stack } from "react-bootstrap";
 import { Link } from "react-router-dom";
 import { AuthContext, AuthContextType } from "../context/AuthContext";
+import Notification from "./chat/Notification";
 
 const NavBar = () => {
   const { user, logoutUser }: AuthContextType = useContext(AuthContext) || {
@@ -34,13 +35,16 @@ const NavBar = () => {
                 </Link>
               </>
             ) : (
-              <Link
-                onClick={logoutUser}
-                className="link-light text-decoration-none"
-                to="/register"
-              >
-                Logout
-              </Link>
+              <>
+                <Notification />
+                <Link
+                  onClick={logoutUser}
+                  className="link-light text-decoration-none"
+                  to="/register"
+                >
+                  Logout
+                </Link>
+              </>
             )}
           </Stack>
         </Nav>

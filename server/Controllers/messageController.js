@@ -32,6 +32,7 @@ const getMessages = async (req, res) => {
     }
 }
 
+
 module.exports = {
     createMessage,
     getMessages

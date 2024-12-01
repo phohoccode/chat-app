@@ -15,8 +15,7 @@ const PotentialChats = () => {
   const { user }: any = useContext(AuthContext);
   const { potentialChats, createChat, onlineUsers }: PotentialChatsProps =
     useContext(ChatContext as any);
-
-
+    
   return (
     <>
       <div className="all-users">

@@ -7,8 +7,10 @@ const UserChat = ({ chat, user }: any) => {
   const { recipientUser }: any = useFetchRecipientUser(chat, user);
   const { onlineUsers }: any = useContext(ChatContext);
 
-  const isOnline = onlineUsers?.some((u: any) => u?.userId === user._id);
-  console.log(recipientUser);
+  const isOnline = onlineUsers?.some(
+    (user: any) => user?.userId === recipientUser?._id
+  );
+
   return (
     <Stack
       direction="horizontal"

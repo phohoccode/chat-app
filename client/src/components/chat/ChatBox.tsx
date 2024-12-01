@@ -12,7 +12,19 @@ const ChatBox = () => {
     useContext(ChatContext);
   const { recipientUser } = useFetchRecipientUser(currentChat, user);
   const [textMessage, setTextMessage] = useState<string>("");
+  const scroll = useRef<any>();
 
+  useEffect(() => {
+    scroll.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  if (!user) {
+    return (
+      <p style={{ textAlign: "center", width: "100%" }}>
+        Đang tải người dùng...
+      </p>
+    );
+  }
 
   if (!recipientUser) {
     return (
@@ -24,7 +36,9 @@ const ChatBox = () => {
 
   if (isMessagesLoading) {
     return (
-      <p style={{ textAlign: "center", width: "1000%" }}>Loading messages...</p>
+      <p style={{ textAlign: "center", width: "1000%" }}>
+        Đang tải tin nhắn...
+      </p>
     );
   }
 
@@ -37,6 +51,7 @@ const ChatBox = () => {
         {messages?.map((msg: any, index: number) => (
           <Stack
             key={index}
+            ref={scroll}
             className={`${
               msg?.senderId === user?._id
                 ? "message self align-self-end flex-grow-0"
