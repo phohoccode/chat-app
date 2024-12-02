@@ -43,6 +43,10 @@ export interface ChatContextType {
     user: any,
     notifications: any
   ) => void;
+  markThisUserNotifications: (
+    thisUserNotifications: any,
+    notifications: any
+  ) => void;
 }
 
 export const ChatContext = createContext<ChatContextType | null>(null);
@@ -64,8 +68,6 @@ export const ChatProvider = ({ children, user }: ChatProviderProps) => {
   const [onlineUsers, setOnlineUsers] = useState<any>([]);
   const [notifications, setNotifications] = useState<any>([]);
   const [allUsers, setAllUsers] = useState<any>([]);
-
-  console.log("notifications", notifications);
 
   useEffect(() => {
     const newSocket = io("http://localhost:3000");
@@ -154,7 +156,7 @@ export const ChatProvider = ({ children, user }: ChatProviderProps) => {
       }
     };
     getUserChats();
-  }, [user]);
+  }, [user, notifications]);
 
   useEffect(() => {
     const getUsers = async () => {
@@ -257,6 +259,7 @@ export const ChatProvider = ({ children, user }: ChatProviderProps) => {
     setCurrentChat(chat);
   }, []);
 
+  // đánh dấu tất cả thông báo đã đọc
   const markAllNotificationsAsRead = useCallback((notifications: any) => {
     const mNofications = notifications?.map((n: any) => {
       return { ...n, isRead: true };
@@ -265,12 +268,14 @@ export const ChatProvider = ({ children, user }: ChatProviderProps) => {
     setNotifications(mNofications);
   }, []);
 
+  // đánh dấu thông báo đã đọc
   const markNotificationAsRead = useCallback(
     (n: any, userChats: any, user: any, notifications: any) => {
-      // find chat to open
-
+      // trả về đoạn chat phù hợp với thông báo
       const desiredChat = userChats.find((chat: any) => {
         const chatMembers = [user._id, n.senderId];
+
+        // tìm tất cả thành viên phù hợp với đoạn chat
         const isDesiredChat = chat?.members?.every((member: any) => {
           return chatMembers.includes(member);
         });
@@ -288,6 +293,27 @@ export const ChatProvider = ({ children, user }: ChatProviderProps) => {
       });
 
       updateCurrentChat(desiredChat);
+      setNotifications(mNofications);
+    },
+    []
+  );
+
+  const markThisUserNotifications = useCallback(
+    (thisUserNotifications: any, notifications: any) => {
+      const mNofications = notifications?.map((el: any) => {
+        let notification;
+
+        thisUserNotifications.forEach((n: any) => {
+          if (n.senderId === el.senderId) {
+            notification = { ...n, isRead: true };
+          } else {
+            notification = el; // trả về thông báo không đọc
+          }
+        });
+
+        return notification;
+      });
+
       setNotifications(mNofications);
     },
     []
@@ -312,6 +338,7 @@ export const ChatProvider = ({ children, user }: ChatProviderProps) => {
         sendTextMessage,
         markAllNotificationsAsRead,
         markNotificationAsRead,
+        markThisUserNotifications,
       }}
     >
       {children}
